@@ -385,7 +385,16 @@ class AgileQuery < Query
 
   def condition_for_status
     if Redmine::VERSION.to_s > '2.4'
-      return {:status_id => options[:f_status] || IssueStatus.where(:is_closed => false)}
+      if options[:f_status] && options[:f_status].length > 0
+		return {:status_id => options[:f_status]}
+	  else
+		status_filter_values = get_status(User.current)
+		if status_filter_values && status_filter_values.length > 0
+			return {:status_id => status_filter_values}
+		else
+			return {:status_id => IssueStatus.where(:is_closed => false)}
+		end
+	  end
     end
     '1=1'
   end
@@ -454,17 +463,17 @@ class AgileQuery < Query
   end
   
   def get_status(user)
-		Rails.logger.info("----------------get_status start----------------------------")
+		Rails.logger.debug("----------------get_status start----------------------------")
 		status = []
 		if user && user.custom_value_for(CustomField.find_by_name_and_type('Estados', 'UserCustomField')) &&
 			user.custom_value_for(CustomField.find_by_name_and_type('Estados', 'UserCustomField')).value
-			Rails.logger.info(user.custom_field_value(CustomField.find_by_name_and_type('Estados', 'UserCustomField')))
+			Rails.logger.debug(user.custom_field_value(CustomField.find_by_name_and_type('Estados', 'UserCustomField')))
 			user_status = user.custom_field_value(CustomField.find_by_name_and_type('Estados', 'UserCustomField'))
 			if user_status && user_status.kind_of?(Array)
 				user_status.each do |state|
 					index = state.to_s.index('-').to_i
-					Rails.logger.info(index)
-					Rails.logger.info(state)
+					Rails.logger.debug(index)
+					Rails.logger.debug(state)
 					if (index > 0 && state.to_s[0, index].to_i > 0)
 						id = state.to_s[0, index].to_s
 						status.push(id)
@@ -472,7 +481,7 @@ class AgileQuery < Query
 				end
 			end
 		end
-		Rails.logger.info("----------------get_status end----------------------------")
+		Rails.logger.debug("----------------get_status end----------------------------")
 		return status
 	end
 

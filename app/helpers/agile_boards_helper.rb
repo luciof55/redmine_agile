@@ -67,15 +67,15 @@ module AgileBoardsHelper
   def render_board_fields_status(query)
     available_statuses = Redmine::VERSION.to_s >= '3.4' && @project ? @project.rolled_up_statuses : IssueStatus.sorted
 	if query.options[:f_status] && query.options[:f_status].length > 0
-		Rails.logger.info("***FROM Request options")
+		Rails.logger.debug("***FROM Request options")
 		current_statuses = query.options[:f_status]
 	else
 		status_filter_values = query.get_status(User.current)
 		if status_filter_values && status_filter_values.length > 0
-			Rails.logger.info("***FROM Preferences")
+			Rails.logger.debug("***FROM Preferences")
 			current_statuses = status_filter_values
 		else
-			Rails.logger.info("***FROM DB")
+			Rails.logger.debug("***FROM DB")
 			current_statuses = IssueStatus.where(:is_closed => false).pluck(:id).map(&:to_s)
 		end
 	end
