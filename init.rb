@@ -1,7 +1,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2018 RedmineUP
+# Copyright (C) 2011-2019 RedmineUP
 # http://www.redmineup.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -17,11 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with redmine_agile.  If not, see <http://www.gnu.org/licenses/>.
 
-requires_redmine_crm :version_or_higher => '0.0.32' rescue raise "\n\033[31mRedmine requires newer redmine_crm gem version.\nPlease update with 'bundle update redmine_crm'.\033[0m"
+requires_redmine_crm :version_or_higher => '0.0.43' rescue raise "\n\033[31mRedmine requires newer redmine_crm gem version.\nPlease update with 'bundle update redmine_crm'.\033[0m"
 
 require 'redmine'
 
-AGILE_VERSION_NUMBER = '1.4.6'
+AGILE_VERSION_NUMBER = '1.4.12'
 AGILE_VERSION_TYPE = "Light version"
 
 Redmine::Plugin.register :redmine_agile do
@@ -32,7 +32,7 @@ Redmine::Plugin.register :redmine_agile do
   url 'http://redmineup.com/pages/plugins/agile'
   author_url 'mailto:support@redmineup.com'
 
-  requires_redmine :version_or_higher => '2.3'
+  requires_redmine :version_or_higher => '2.6'
 
   settings :default => { 'default_columns' => %w(tracker assigned_to) },
            :partial => 'settings/agile/general'

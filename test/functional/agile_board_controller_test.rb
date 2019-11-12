@@ -3,7 +3,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2018 RedmineUP
+# Copyright (C) 2011-2019 RedmineUP
 # http://www.redmineup.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -20,6 +20,57 @@
 # along with redmine_agile.  If not, see <http://www.gnu.org/licenses/>.
 
 require File.expand_path('../../test_helper', __FILE__)
+
+module RedmineAgile
+  module AgileBoardsControllerTest
+    module SpecificTestCase
+      def test_get_index_with_filter_issue_id
+        compatible_request :get, :index, {
+          project_id: 'ecookbook',
+          set_filter: '1',
+          f: %w(issue_id),
+          op: { 'issue_id' => '<=' },
+          v: { 'issue_id' => ['2'] },
+          c: %w(tracker assigned_to)
+        }
+
+        assert_response :success
+        assert_equal [1, 2], agile_issues_in_list.map(&:id).sort
+      end
+
+      def test_get_index_with_filter_is_private
+        compatible_request :get, :index, {
+          project_id: 'ecookbook',
+          set_filter: '1',
+          f: %w(is_private),
+          op: { 'is_private' => '=' },
+          v: { 'is_private' => ['1'] },
+          c: %w(tracker assigned_to)
+        }
+
+        assert_response :success
+        assert_equal [14], agile_issues_in_list.map(&:id)
+      end
+
+      def test_get_index_with_filter_watcher_id
+        issues(:issues_001).set_watcher(users(:users_002))
+
+        compatible_request :get, :index, {
+          project_id: 'ecookbook',
+          set_filter: '1',
+          f: %w(watcher_id),
+          op: { 'watcher_id' => '=' },
+          v: { 'watcher_id' => ['2'] },
+          c: %w(tracker assigned_to)
+        }
+
+        assert_response :success
+        assert_equal [1], agile_issues_in_list.map(&:id)
+      end
+    end
+  end
+end
+
 
 class AgileBoardsControllerTest < ActionController::TestCase
   fixtures :projects,
@@ -47,6 +98,8 @@ class AgileBoardsControllerTest < ActionController::TestCase
            :journal_details,
            :queries
   fixtures :email_addresses if Redmine::VERSION.to_s > '3.0'
+
+  include(RedmineAgile::AgileBoardsControllerTest::SpecificTestCase) if Redmine::VERSION.to_s > '2.4'
 
   def setup
     @project_1 = Project.find(1)
@@ -362,16 +415,22 @@ class AgileBoardsControllerTest < ActionController::TestCase
   end if Redmine::VERSION.to_s > '2.4'
 
   def test_total_estimated_hours_for_status
-    [1, 2, 3].each do |id|
-      issue = Issue.find(id)
+    Setting.stubs(:display_subprojects_issues?).returns(false) if Redmine::VERSION.to_s >= '4.0'
+    Issue.find(1, 2, 3).each do |issue|
       issue.estimated_hours = 10
       issue.save
     end
-    compatible_request :get, :index, agile_query_params.merge(:c => ['estimated_hours'])
+
+    compatible_request :get, :index, agile_query_params.merge(c: ['estimated_hours'],
+                                                              f: [:issue_id],
+                                                              op: { issue_id: '><' },
+                                                              v: { issue_id: [1, 3] })
+
     assert_response :success
-    assert_select 'thead tr th span.hours', { :count => 1, :text => '20.00h' } # status_id == 1
-    assert_select 'thead tr th span.hours', { :count => 1, :text => '10.00h' } # status_id == 2
-  end if Redmine::VERSION.to_s > '2.4'
+
+    assert_select 'thead tr th span.hours', { count: 1, text: '20.00h' } # status_id == 1
+    assert_select 'thead tr th span.hours', { count: 1, text: '10.00h' } # status_id == 2
+  end
 
   def test_get_index_with_checklist
     # global board

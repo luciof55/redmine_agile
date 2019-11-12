@@ -3,7 +3,7 @@
 # This file is a part of Redmin Agile (redmine_agile) plugin,
 # Agile board plugin for redmine
 #
-# Copyright (C) 2011-2018 RedmineUP
+# Copyright (C) 2011-2019 RedmineUP
 # http://www.redmineup.com/
 #
 # redmine_agile is free software: you can redistribute it and/or modify
@@ -66,19 +66,7 @@ module AgileBoardsHelper
 
   def render_board_fields_status(query)
     available_statuses = Redmine::VERSION.to_s >= '3.4' && @project ? @project.rolled_up_statuses : IssueStatus.sorted
-	if query.options[:f_status] && query.options[:f_status].length > 0
-		Rails.logger.debug("***FROM Request options")
-		current_statuses = query.options[:f_status]
-	else
-		status_filter_values = query.get_status(User.current)
-		if status_filter_values && status_filter_values.length > 0
-			Rails.logger.debug("***FROM Preferences")
-			current_statuses = status_filter_values
-		else
-			Rails.logger.debug("***FROM DB")
-			current_statuses = IssueStatus.where(:is_closed => false).pluck(:id).map(&:to_s)
-		end
-	end
+    current_statuses = query.options[:f_status] || IssueStatus.where(:is_closed => false).pluck(:id).map(&:to_s)
     wp = query.options[:wp] || {}
     status_tags = available_statuses.map do |status|
       label_tag('', check_box_tag('f_status[]', status.id, current_statuses.include?(status.id.to_s)
@@ -133,8 +121,8 @@ module AgileBoardsHelper
     "#{I18n.t('datetime.distance_in_words.x_days', :count => (hours/24).to_i)}"
   end
 
-  def class_for_closed_issue(issue)
-    return '' if !RedmineAgile.hide_closed_issues_data?
+  def class_for_closed_issue(issue, is_version_board)
+    return '' if !RedmineAgile.hide_closed_issues_data? && !is_version_board
     return 'closed-issue' if issue.closed?
     ''
   end
@@ -149,6 +137,11 @@ module AgileBoardsHelper
     "
     return js_code.html_safe if options[:only_code]
     javascript_tag(js_code)
+  end
+
+  def estimated_value(issue)
+    return (issue.story_points || 0) if RedmineAgile.use_story_points?
+    issue.estimated_hours.to_f || 0
   end
 
   def show_checklist?(issue)
