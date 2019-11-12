@@ -66,8 +66,20 @@ module AgileBoardsHelper
 
   def render_board_fields_status(query)
     available_statuses = Redmine::VERSION.to_s >= '3.4' && @project ? @project.rolled_up_statuses : IssueStatus.sorted
-    current_statuses = query.options[:f_status] || IssueStatus.where(:is_closed => false).pluck(:id).map(&:to_s)
-    wp = query.options[:wp] || {}
+    #current_statuses = query.options[:f_status] || IssueStatus.where(:is_closed => false).pluck(:id).map(&:to_s)
+    
+	if query.options[:f_status] && query.options[:f_status].length > 0
+		current_statuses = query.options[:f_status]
+	else
+		status_filter_values = query.get_status(User.current)
+		if status_filter_values && status_filter_values.length > 0
+			current_statuses = status_filter_values
+		else
+			current_statuses = IssueStatus.where(:is_closed => false).pluck(:id).map(&:to_s)
+		end
+	end
+	
+	wp = query.options[:wp] || {}
     status_tags = available_statuses.map do |status|
       label_tag('', check_box_tag('f_status[]', status.id, current_statuses.include?(status.id.to_s)
       ) + status.to_s, :class => 'floating')
